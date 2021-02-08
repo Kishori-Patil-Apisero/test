@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="650f4b2b-b8f4-40cf-ab6a-617b84212616" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="2c35fc09-12f2-4b6c-8082-07df26301e65" >
+		<http:request-connection host="oauth2.googleapis.com" protocol="HTTPS">
+			<reconnection >
+				<reconnect />
+			</reconnection>
+		</http:request-connection>
+	</http:request-config>
+		<import doc:name="Import" doc:id="aa0ec9b3-4392-44f2-b8a8-bf3ecf9e1e3e" file="error-framework-global-config.xml"/>
+	<import doc:name="Import" doc:id="6efcebc8-8b4f-408a-9681-1243311871ce" file="apisero-generic-error-handler.xml"/>
+	
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="02b42544-d078-4b18-a702-5d82e40ae361" >
+		<db:my-sql-connection host="mymuledb.ca7ap7yuiswy.ap-southeast-2.rds.amazonaws.com" port="3306" user="admin" password="123456mmm" database="AWS_Schema" >
+			<db:connection-properties >
+				<db:connection-property key="useSSL" value="false" />
+			</db:connection-properties>
+		</db:my-sql-connection>
+	</db:config>
+	<configuration-properties doc:name="Configuration properties" doc:id="c1ec4eea-e88f-4ae2-9834-657425d98bcf" file="config.yaml" />
+	<flow name="errorhandling1Flow" doc:id="835ec360-ec24-424f-bffe-8e5c732c2256" >
+		<http:listener doc:name="Listener" doc:id="3b6241d3-e5fa-45ff-b7d2-c610d4510873" config-ref="HTTP_Listener_config" path="/error">
+			<http:error-response >
+				<http:body ><![CDATA[#[payload]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<set-payload doc:name="Set Payload" doc:id="b529106e-f0c8-41f3-9630-93e8931be89a" value='#["get access token for Gsheet"]'/>
+		<logger level="INFO" doc:name="Logger" doc:id="053631ca-7554-4288-85f8-5714fd5bff3c" message="#[payload]"/>
+		<http:request method="POST" doc:name="HTTP - Google Token Generation" doc:id="f41a92e9-e9ae-45ee-b741-e1ad745d51e7" path="/token" target="token" config-ref="HTTP_Request_configuration">
+				<http:body><![CDATA[#[null]]]></http:body>
+				<http:query-params><![CDATA[#[output application/java
+---
+{
+	"refresh_token" : "//04RiN1P2duG2rCgYIARAAGAQSNwF-L9IrNgdPHGLgn12T4iN6hmiSWiZ3q4uFY7a4l1_7PFgIL8nELtMu2jb6sZd_PAxAKldr1rI",
+	"client_secret" : "aAshIlR09SqKewQdHsdS-mQ1",
+	"grant_type" : "refresh_token",
+	"client_id" : "67235216310-s9urj941l1v6n6ki3orforhpdkc2770f.apps.googleusercontent.com"
+}]]]></http:query-params>
+			
+</http:request>
+		<logger level="INFO" doc:name="Logger" doc:id="92778eb7-a9ae-4e91-a153-5e671c07653a" message="#[vars.token]"/>
+		<validation:is-null doc:name="Is null" doc:id="bffae30d-f101-4ddd-bb37-118b655fd27f" value="#[payload]"/>
+		<error-handler ref="global_error_handler" />	
+	
+</flow>
+</mule>
